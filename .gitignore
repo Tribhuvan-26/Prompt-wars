@@ -1,3 +1,27 @@
-node_modules
-venv
+# Dependencies
+node_modules/
+dist/
+build/
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+.env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
