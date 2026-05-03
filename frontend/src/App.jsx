@@ -1,5 +1,42 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
+
+/**
+ * Component: ActionButton
+ * Purpose: Reusable accessible button with consistent styling.
+ */
+const ActionButton = ({ onClick, label, variant = 'primary', disabled }) => (
+  <button 
+    className={`btn btn-${variant}`} 
+    onClick={onClick} 
+    disabled={disabled}
+    aria-label={label}
+  >
+    {label}
+  </button>
+);
+
+/**
+ * Component: OutputSection
+ * Purpose: Display AI results with copy-to-clipboard functionality.
+ */
+const OutputSection = ({ content, onCopy }) => (
+  <section className="output-section" aria-live="polite">
+    <div className="output-header">
+      <h2 id="output-title">Study Guide</h2>
+      <button 
+        className="copy-btn" 
+        onClick={() => onCopy(content)}
+        aria-label="Copy generated text to clipboard"
+      >
+        Copy Text
+      </button>
+    </div>
+    <div className="output-content" aria-labelledby="output-title">
+      <ReactMarkdown>{content}</ReactMarkdown>
+    </div>
+  </section>
+);
 
 function App() {
   const [input, setInput] = useState('');
@@ -7,12 +44,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Use relative URL for production (same domain)
+  // Use a relative URL which works with the FastAPI proxy/mount
   const API_URL = '/generate';
 
   const handleGenerate = async (type) => {
-    if (!input.trim()) {
-      alert('Please enter some text first!');
+    if (!input.trim() || input.length < 5) {
+      setError('Please enter at least 5 characters to generate a quality answer.');
       return;
     }
 
@@ -23,13 +60,8 @@ function App() {
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: input,
-          type: type,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: input, type: type }),
       });
 
       const data = await res.json();
@@ -37,61 +69,88 @@ function App() {
       if (res.ok) {
         setResponse(data.response);
       } else {
-        const errMsg = data.detail || 'Something went wrong on the server.';
-        setError(errMsg);
-        alert('Error: ' + errMsg);
+        throw new Error(data.detail || 'The AI service is busy. Please try again.');
       }
     } catch (err) {
-      console.error('Fetch error:', err);
-      const networkErr = 'Failed to connect to the backend server. Please ensure it is running at http://localhost:8000';
-      setError(networkErr);
-      alert(networkErr);
+      console.error('API Error:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const copyToClipboard = () => {
-    if (!response) return;
-    navigator.clipboard.writeText(response).then(() => {
-      alert('Copied to clipboard!');
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Content copied to clipboard!');
     });
   };
 
   return (
     <div className="app-container">
-      <div className="card">
+      <header>
         <h1>AI Study Assistant</h1>
-        
-        <textarea
-          placeholder="Paste your notes or enter a topic here..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={loading}
-        />
+        <p>Expertly structured study materials powered by Google Gemini</p>
+      </header>
 
-        <div className="button-group">
-          <button disabled={loading} onClick={() => handleGenerate('10mark')}>Generate 10-Mark Answer</button>
-          <button disabled={loading} onClick={() => handleGenerate('20mark')}>Generate 20-Mark Answer</button>
-          <button disabled={loading} onClick={() => handleGenerate('summarize')}>Summarize Notes</button>
-          <button disabled={loading} onClick={() => handleGenerate('explain')}>Explain Simply</button>
-        </div>
+      <main className="card">
+        <section className="input-section">
+          <label htmlFor="study-input" className="sr-only">Enter study topic or notes</label>
+          <textarea
+            id="study-input"
+            placeholder="Paste your notes or enter a question here (e.g., 'What is Photosynthesis?')..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={loading}
+            aria-required="true"
+          />
 
-        {loading && <p className="loading">Generating content... please wait.</p>}
-        {error && <p className="error-message">{error}</p>}
+          <div className="button-group">
+            <ActionButton 
+              label="10-Mark Answer" 
+              onClick={() => handleGenerate('10mark')} 
+              disabled={loading}
+            />
+            <ActionButton 
+              label="20-Mark Answer" 
+              onClick={() => handleGenerate('20mark')} 
+              disabled={loading}
+            />
+            <ActionButton 
+              label="Summarize" 
+              variant="secondary"
+              onClick={() => handleGenerate('summarize')} 
+              disabled={loading}
+            />
+            <ActionButton 
+              label="Explain Simply" 
+              variant="accent"
+              onClick={() => handleGenerate('explain')} 
+              disabled={loading}
+            />
+          </div>
+        </section>
 
-        {response && !loading && (
-          <div className="output-section">
-            <div className="output-header">
-              <h3>Result</h3>
-              <button className="copy-btn" onClick={copyToClipboard}>Copy Text</button>
-            </div>
-            <div className="output-content">
-              <ReactMarkdown>{response}</ReactMarkdown>
-            </div>
+        {loading && (
+          <div className="loader" aria-busy="true">
+            <div className="spinner"></div>
+            <p>Our AI is crafting your study guide...</p>
           </div>
         )}
-      </div>
+
+        {error && (
+          <div className="error-box" role="alert">
+            <p>{error}</p>
+          </div>
+        )}
+
+        {response && !loading && (
+          <OutputSection content={response} onCopy={copyToClipboard} />
+        )}
+      </main>
+
+      <footer>
+        <p>&copy; {new Date().getFullYear()} AI Study Assistant | Built with Google Gemini 1.5 Flash</p>
+      </footer>
     </div>
   );
 }

@@ -1,0 +1,18 @@
+[project]
+name = "ai-study-assistant"
+version = "0.1.0"
+description = "AI Study Assistant with FastAPI and Gemini"
+dependencies = [
+    "fastapi>=0.109.2",
+    "uvicorn>=0.27.1",
+    "google-generativeai>=0.5.2",
+    "python-dotenv>=1.0.1",
+    "fastapi-cors>=0.0.1",
+    "pytest>=8.0.0",
+    "httpx>=0.26.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+]
