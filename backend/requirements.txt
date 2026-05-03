@@ -1,6 +1,6 @@
 fastapi==0.109.2
 uvicorn==0.27.1
-google-generativeai==0.5.2
+google-genai
 python-dotenv==1.0.1
 fastapi-cors==0.0.1
 pytest==8.0.0
